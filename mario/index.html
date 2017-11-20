@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title></title>
+</head>
+<body>
+	<h3></h3>
+	<canvas id="game" width="640" height="640"></canvas>
+	<div class="controls">
+		<button data-action="changeOffset" data-offset="-1024">-1024</button>
+		<button data-action="changeOffset" data-offset="1024">1024</button>
+	</div>
+	<canvas id="mario" width="160" height="320"></canvas>
+	<script type="text/javascript">
+		// log
+		const log = console.log.bind(console)
+		// 选中dom
+		const e = sel => document.querySelector(sel)
+
+		// ajax
+		const ajax = request => {
+			let r = new XMLHttpRequest()
+			r.open(request.method, request.url, true)
+			r.responseType = request.type
+			r.onreadystatechange = event => {
+				if(r.readyState == 4) {
+					request.callback(r.response)
+				}
+			}
+			r.send()
+		}
+
+		const actions = {
+			changeOffset(offset) {
+				offsetD += offset
+				e('h3').innerHTML = offsetD
+				drawNes()
+			}
+		}
+
+		// 按钮事件
+		const bindBtn = () => {
+			e('.controls').addEventListener('click', event => {
+				let action = event.target.dataset.action
+				let offset = Number(event.target.dataset.offset)
+				actions[action] && actions[action](offset)
+			})
+		}
+
+		// 画颜色块
+		const drawBlock = (context, data, x, y, pixeWidth, block) => {
+			let w = pixeWidth
+			let h =pixeWidth
+			let colors = [
+				'white',
+				'#f80302',
+				'#f9edb1',
+				'#1167e5'
+			]
+			for (let i = 0; i < block; i++) {
+				let p1 = data[i]
+				let p2 = data[i + 8]
+				for (let j = 0; j < block; j++) {
+					let c1 = (p1 >> (7 - j)) & 0b00000001
+					let c2 = (p2 >> (7 - j)) & 0b00000001
+					let pixel = (c2 << 1) + c1
+					let color = colors[pixel]
+					context.fillStyle = color
+					let px = x + j * w
+					let py = y + i * h
+					if (pixel != 0) {
+						context.fillRect(px, py, w, h)
+					}
+				}
+			}
+		}
+
+		// 计算mario
+		const drawMario = data => {
+			let canvas = e('#mario')
+			let context = canvas.getContext('2d')
+			context.clearRect(0, 0, canvas.width, canvas.height)
+			let pixelBlock = 8
+			let pixelWidth = 10
+			let offset = 0
+			for (let i = 0; i < 4; i++) {
+				for (let j = 0; j < 2; j++) {
+					let x = j * pixelBlock * pixelWidth
+					let y = i * pixelBlock * pixelWidth
+					let pixels = data.slice(offset)
+					drawBlock(context, pixels, x, y, pixelWidth, 8)
+					offset += 16
+				}
+			}
+		}
+
+		// 计算bytes
+		const drawNes = () => {
+			let canvas = e('#game')
+			let context = canvas.getContext('2d')
+			context.clearRect(0, 0, canvas.width, canvas.height)
+
+			let block = 8
+			let pixeSize = 8
+			let pixeWidth = 10
+			let num = 16
+			for (let i = 0; i < block; i++) {
+				for (let j = 0; j < block; j++) {
+					let x = j * pixeSize * pixeWidth
+					let y = i * pixeSize * pixeWidth
+					let index = offsetD + (i * 8 + j) * num
+					drawBlock(context, bytes.slice(index), x, y, pixeWidth, block)
+				}
+			}
+		}
+
+		// 初始化
+		const init = () => {
+			offsetD = 32784
+			let marioOffset = 32784
+			let request = {
+				url: 'src/Super_Mario_Bros.nes',
+				method: 'get',
+				type: 'arraybuffer',
+				callback(r) {
+					bytes = new Uint8Array(r)
+					drawNes()
+					let step = 0
+					setInterval(function () {
+						let offset = marioOffset + 128 * step
+						drawMario(bytes.slice(offset))
+						step++
+						step %= 3
+					}, 160)
+					
+
+					log(bytes)
+				}
+			}
+			ajax(request)
+		}
+
+		// 全局数据
+		let offsetD
+		let bytes
+		// 执行初始化
+		init()
+		bindBtn()
+	</script>
+</body>
+</html>
