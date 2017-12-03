@@ -3,15 +3,24 @@
 <head>
 	<meta charset="utf-8">
 	<title></title>
+	<style type="text/css">
+		/*canvas {
+			width: 400px;
+		}*/
+		#ziyuan {
+			background-color: #888;
+		}
+	</style>
 </head>
 <body>
 	<h3></h3>
-	<canvas id="game" width="640" height="640"></canvas>
+	<canvas id="game" width="640" height="640" data-action="setMarioBit"></canvas>
 	<div class="controls">
 		<button data-action="changeOffset" data-offset="-1024">-1024</button>
 		<button data-action="changeOffset" data-offset="1024">1024</button>
 	</div>
 	<canvas id="mario" width="160" height="320"></canvas>
+	<canvas id="ziyuan" width="160" height="160" data-action="drawZiyuan"></canvas>
 	<script type="text/javascript">
 		// log
 		const log = console.log.bind(console)
@@ -36,6 +45,28 @@
 				offsetD += offset
 				e('h3').innerHTML = offsetD
 				drawNes()
+			},
+			setMarioBit(event) {
+				let x = event.offsetX
+				let y = event.offsetY
+				let num = Math.ceil(x / 80) + 8 * (Math.ceil(y / 80) - 1)
+				let canvas = e('#ziyuan')
+				ziyuanNum = offsetD + ((num - 1) * 16)
+				// let context = canvas.getContext('2d')
+				// context.clearRect(0, 0, canvas.width, canvas.height)
+				// drawBlock(context, bytes.slice(), 0, 0, 10, 8)
+				// drawRes(bytes.slice(offsetD + ((num - 1) * 16)))
+				// log(bytes.slice(offsetD + ((num - 1) * 64)))
+				// let ziyuanc = e('#ziyuan')
+				// let ziyuant = ziyuanc.getContext('2d')
+				// drawBlock(ziyuant, bytes.slice(offsetD), x, y, pixelWidth, 8)
+			},
+			drawZiyuan(event) {
+				log(event.offsetX)
+				let x = Math.ceil(event.offsetX / 80) - 1
+				let y = Math.ceil(event.offsetY / 80) - 1
+
+				drawRes(bytes.slice(ziyuanNum), x, y)
 			}
 		}
 
@@ -45,6 +76,14 @@
 				let action = event.target.dataset.action
 				let offset = Number(event.target.dataset.offset)
 				actions[action] && actions[action](offset)
+			})
+			e('#game').addEventListener('click', event => {
+				let action = event.target.dataset.action
+				actions[action] && actions[action](event)
+			})
+			e('#ziyuan').addEventListener('click', event => {
+				let action = event.target.dataset.action
+				actions[action] && actions[action](event)
 			})
 		}
 
@@ -74,6 +113,19 @@
 					}
 				}
 			}
+		}
+
+		// 计算资源图块
+		const drawRes = (data, i, j) => {
+			log(data, i, j)
+			let canvas = e('#ziyuan')
+			let context = canvas.getContext('2d')
+			let pixelBlock = 8
+			let pixelWidth = 10
+			let x = i * pixelBlock * pixelWidth
+			let y = j * pixelBlock * pixelWidth
+			log(context, data, x, y, pixelWidth, 8)
+			drawBlock(context, data, x, y, pixelWidth, 8)
 		}
 
 		// 计算mario
@@ -117,6 +169,7 @@
 
 		// 初始化
 		const init = () => {
+			ziyuanNum = 0
 			offsetD = 32784
 			let marioOffset = 32784
 			let request = {
@@ -128,10 +181,10 @@
 					drawNes()
 					let step = 0
 					setInterval(function () {
+						step %= 3
 						let offset = marioOffset + 128 * step
 						drawMario(bytes.slice(offset))
 						step++
-						step %= 3
 					}, 160)
 					
 
@@ -144,6 +197,7 @@
 		// 全局数据
 		let offsetD
 		let bytes
+		let ziyuanNum
 		// 执行初始化
 		init()
 		bindBtn()
