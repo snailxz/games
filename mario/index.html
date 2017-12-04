@@ -52,14 +52,6 @@
 				let num = Math.ceil(x / 80) + 8 * (Math.ceil(y / 80) - 1)
 				let canvas = e('#ziyuan')
 				ziyuanNum = offsetD + ((num - 1) * 16)
-				// let context = canvas.getContext('2d')
-				// context.clearRect(0, 0, canvas.width, canvas.height)
-				// drawBlock(context, bytes.slice(), 0, 0, 10, 8)
-				// drawRes(bytes.slice(offsetD + ((num - 1) * 16)))
-				// log(bytes.slice(offsetD + ((num - 1) * 64)))
-				// let ziyuanc = e('#ziyuan')
-				// let ziyuant = ziyuanc.getContext('2d')
-				// drawBlock(ziyuant, bytes.slice(offsetD), x, y, pixelWidth, 8)
 			},
 			drawZiyuan(event) {
 				log(event.offsetX)
@@ -90,7 +82,7 @@
 		// 画颜色块
 		const drawBlock = (context, data, x, y, pixeWidth, block) => {
 			let w = pixeWidth
-			let h =pixeWidth
+			let h = pixeWidth
 			let colors = [
 				'white',
 				'#f80302',

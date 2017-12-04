@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>地图编辑</title>
+	<style type="text/css">
+		#map {
+			display: block;
+			margin: 0 auto;
+			background-color: #5080ff;
+			cursor: pointer;
+		}
+		.ctr {
+			display: block;
+			margin: 0 auto;
+			width: 400px;
+		}
+		#ziyuan {
+			margin: 0 auto;
+			background-color: red;
+			cursor: pointer;
+		}
+	</style>
+</head>
+<body>
+	<canvas id="map" width="400" height="375" data-action="setMap"></canvas>
+
+	<div class="ctr">
+		<button>清除全部</button>
+		<button>清除单个</button>
+		<button data-action="retreat" id="retreat">-</button>
+		<button data-action="forward" id="forward">+</button>
+	<div>
+
+	<canvas id="ziyuan" width="400" height="25" data-action="setZiyuan"></canvas>
+	<script type="text/javascript">
+		// 选中dom
+		const e = sel => document.querySelector(sel)
+		// 资源文件
+		const imgSrc = [
+			'image/stone.png',
+			'image/Brick.png',
+			'image/what.png',
+			'image/see.png',
+		]
+		// log
+		const log = console.log.bind(console)
+		// onload 之后的imgdata
+		let imgData = []
+		// 地图数据
+		let mapData = []
+		// 地图走到第几行
+		let mapIndex = 0 
+		// 图片宽度
+		const imageW = 25
+		// 选中的资源index
+		let ziyuanIndex = 8
+		// 是否可以设置
+		let canSet = false
+
+		// 事件列表
+		const actions = {
+			setZiyuan(event) {
+				ziyuanIndex = Math.ceil(event.offsetX / 25) - 1
+				log(ziyuanIndex)
+			},
+			retreat() {
+				mapIndex--
+				if (mapIndex < 0) {
+					mapIndex = 0
+				}
+				setDataWidth()
+			},
+			forward() {
+				mapIndex++
+				setDataWidth()
+			},
+			setMap(event) {
+				if (canSet) {
+					let y = Math.ceil(event.offsetY / 25) - 1
+					let x = Math.ceil(event.offsetX / 25) - 1
+					let num = (mapIndex + x) * 15 + y
+					mapData[num] = ziyuanIndex
+					darwMap()
+				}
+			}
+		}
+
+		// 按钮事件
+		const bindBtn = () => {
+			e('#ziyuan').addEventListener('click', event => {
+				let action = event.target.dataset.action
+				actions[action] && actions[action](event)
+			})
+			e('#retreat').addEventListener('click', event => {
+				let action = event.target.dataset.action
+				actions[action] && actions[action]()
+			})
+			e('#forward').addEventListener('click', event => {
+				let action = event.target.dataset.action
+				actions[action] && actions[action]()
+			})
+			e('#map').addEventListener('mousedown', event => {
+				canSet = true
+				let action = event.target.dataset.action
+				actions[action] && actions[action](event)
+			})
+			e('#map').addEventListener('mousemove', event => {
+				let action = event.target.dataset.action
+				actions[action] && actions[action](event)
+			})
+			e('#map').addEventListener('mouseup', event => {
+				canSet = false
+			})
+		}
+
+		// 画map
+		function darwMap() {
+			let canvas = e('#map')
+			let ctx = canvas.getContext('2d')
+			ctx.clearRect(0, 0, canvas.width, canvas.height)
+			for(let i = 0; i < 16; i++){
+				for(let j = 0; j < 15; j++){
+					let num = (mapIndex + i) * 15 + j
+					let x = i * imageW
+					let y = j * imageW
+					if (mapData[num] != 8) {
+						ctx.drawImage(imgData[mapData[num]], x, y, imageW, imageW)
+					}
+				}
+			}
+		}
+
+		// 画资源
+		function darwZiyuan() {
+			log(imgData)
+			let canvas = e('#ziyuan')
+			let ctx = canvas.getContext('2d')
+			for(let i = 0; i < imgData.length; i++){
+				log(i)
+				let x = i * imageW
+				ctx.drawImage(imgData[i], x, 0, imageW, imageW)
+			}
+		}
+
+		// 展示地图数据
+		function setDataWidth() {
+			let w = e('#map').offsetWidth
+			let num = w/imageW
+
+			// 第一次进来没有就首先创建
+			if (mapData.length < 1) {
+				for(let i = 0; i < num; i++){
+					for(let j = 0; j < 15; j++){
+						mapData.push(8)
+					}
+				}
+			} else {
+				if (mapData[(mapIndex + num - 1) * 15] == 8) {
+					log('不用加')
+				} else {
+					for(let j = 0; j < 15; j++){
+						mapData.push(8)
+					}
+				}
+			}
+			log(mapIndex)
+			log(mapData)
+			darwMap()
+		}
+
+		// init 
+		// 首先加载img
+		for(let i = 0; i < imgSrc.length; i++){
+			let x = i * imageW
+			let img = new Image()
+			img.src = imgSrc[i]
+			img.onload = function () {
+				imgData.push(img)
+				if (i == imgSrc.length -1){
+					// init
+					darwZiyuan()
+					bindBtn()
+					setDataWidth()
+				}
+			}
+		}
+	</script>
+</body>
+</html>
