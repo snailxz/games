@@ -3,10 +3,12 @@
 <head>
 	<title>地图编辑</title>
 	<style type="text/css">
+		canvas {
+			border: 1px solid #ccc;
+		}
 		#map {
 			display: block;
 			margin: 0 auto;
-			background-color: #5080ff;
 			cursor: pointer;
 		}
 		.ctr {
@@ -16,19 +18,20 @@
 		}
 		#ziyuan {
 			margin: 0 auto;
-			background-color: red;
 			cursor: pointer;
 		}
 	</style>
 </head>
 <body>
-	<canvas id="map" width="400" height="375" data-action="setMap"></canvas>
+	<div class="main-box">
+		<canvas id="map" width="400" height="375" data-action="setMap"></canvas>
+		<div>
+	</div>
+	
 
 	<div class="ctr">
-		<button>清除全部</button>
-		<button>清除单个</button>
-		<button data-action="retreat" id="retreat">-</button>
-		<button data-action="forward" id="forward">+</button>
+		<button data-action="cleanAll" id="cleanAllBtn">清除当前屏幕</button>
+		<button data-action="cleanOne" id="cleanOneBtn">清除单个</button>
 	<div>
 
 	<canvas id="ziyuan" width="400" height="25" data-action="setZiyuan"></canvas>
@@ -56,12 +59,14 @@
 		let ziyuanIndex = 8
 		// 是否可以设置
 		let canSet = false
+		// 数据为空时的值
+		const empty = 0
 
 		// 事件列表
 		const actions = {
 			setZiyuan(event) {
-				ziyuanIndex = Math.ceil(event.offsetX / 25) - 1
-				log(ziyuanIndex)
+				ziyuanIndex = Math.ceil(event.offsetX / 25)
+				log('地图画笔', ziyuanIndex)
 			},
 			retreat() {
 				mapIndex--
@@ -82,23 +87,38 @@
 					mapData[num] = ziyuanIndex
 					darwMap()
 				}
+			},
+			cleanAll() {
+				for(let i = 0; i < 16; i++){
+					for(let j = 0; j < 15; j++){
+						let num = (mapIndex + i) * 15 + j
+						mapData[num] = empty
+					}
+				}
+				darwMap()
+			},
+			cleanOne() {
+				ziyuanIndex = empty
+				log('地图画笔', ziyuanIndex)
 			}
 		}
 
 		// 按钮事件
 		const bindBtn = () => {
+			// 选定资源
 			e('#ziyuan').addEventListener('click', event => {
 				let action = event.target.dataset.action
 				actions[action] && actions[action](event)
 			})
-			e('#retreat').addEventListener('click', event => {
-				let action = event.target.dataset.action
-				actions[action] && actions[action]()
+			// 左右移动
+			window.addEventListener('keydown', event => {
+				if (event.keyCode == 37) {
+					actions['retreat']()
+				} else if (event.keyCode == 39) {
+					actions['forward']()
+				}
 			})
-			e('#forward').addEventListener('click', event => {
-				let action = event.target.dataset.action
-				actions[action] && actions[action]()
-			})
+			// 设置map数据
 			e('#map').addEventListener('mousedown', event => {
 				canSet = true
 				let action = event.target.dataset.action
@@ -111,10 +131,23 @@
 			e('#map').addEventListener('mouseup', event => {
 				canSet = false
 			})
+			e('#map').addEventListener('mouseout', event => {
+				canSet = false
+			})
+			// 清除当前整个页面
+			e('#cleanAllBtn').addEventListener('click', event => {
+				let action = event.target.dataset.action
+				actions[action] && actions[action]()
+			})
+			// 清除单个
+			e('#cleanOneBtn').addEventListener('click', event => {
+				let action = event.target.dataset.action
+				actions[action] && actions[action]()
+			})
 		}
 
 		// 画map
-		function darwMap() {
+		const darwMap = () => {
 			let canvas = e('#map')
 			let ctx = canvas.getContext('2d')
 			ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -123,27 +156,25 @@
 					let num = (mapIndex + i) * 15 + j
 					let x = i * imageW
 					let y = j * imageW
-					if (mapData[num] != 8) {
-						ctx.drawImage(imgData[mapData[num]], x, y, imageW, imageW)
+					if (mapData[num] != empty) {
+						ctx.drawImage(imgData[mapData[num] - 1], x, y, imageW, imageW)
 					}
 				}
 			}
 		}
 
 		// 画资源
-		function darwZiyuan() {
-			log(imgData)
+		const darwZiyuan = () => {
 			let canvas = e('#ziyuan')
 			let ctx = canvas.getContext('2d')
 			for(let i = 0; i < imgData.length; i++){
-				log(i)
 				let x = i * imageW
 				ctx.drawImage(imgData[i], x, 0, imageW, imageW)
 			}
 		}
 
 		// 展示地图数据
-		function setDataWidth() {
+		const setDataWidth = () => {
 			let w = e('#map').offsetWidth
 			let num = w/imageW
 
@@ -151,39 +182,44 @@
 			if (mapData.length < 1) {
 				for(let i = 0; i < num; i++){
 					for(let j = 0; j < 15; j++){
-						mapData.push(8)
+						mapData.push(empty)
 					}
 				}
 			} else {
-				if (mapData[(mapIndex + num - 1) * 15] == 8) {
+				if (mapData[(mapIndex + num - 1) * 15] == empty) {
 					log('不用加')
 				} else {
 					for(let j = 0; j < 15; j++){
-						mapData.push(8)
+						mapData.push(empty)
 					}
 				}
 			}
-			log(mapIndex)
-			log(mapData)
+			log('左移', mapIndex)
+			log('地图数据', mapData)
 			darwMap()
 		}
 
 		// init 
 		// 首先加载img
-		for(let i = 0; i < imgSrc.length; i++){
-			let x = i * imageW
+		let mainI = 0
+		function loadImg() {
+			log(mainI)
 			let img = new Image()
-			img.src = imgSrc[i]
+			img.src = imgSrc[mainI]
 			img.onload = function () {
+				mainI++
 				imgData.push(img)
-				if (i == imgSrc.length -1){
+				if (mainI == imgSrc.length){
 					// init
 					darwZiyuan()
 					bindBtn()
 					setDataWidth()
+				} else {
+					loadImg()
 				}
 			}
 		}
+		loadImg()
 	</script>
 </body>
 </html>
